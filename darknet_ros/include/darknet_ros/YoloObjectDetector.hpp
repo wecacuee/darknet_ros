@@ -203,10 +203,12 @@ class YoloObjectDetector
 
   std_msgs::Header imageHeader_;
   cv::Mat camImageCopy_;
+  bool newImageAvailable_ = false;
   boost::shared_mutex mutexImageCallback_;
 
   bool imageStatus_ = false;
   boost::shared_mutex mutexImageStatus_;
+
 
   bool isNodeRunning_ = true;
   boost::shared_mutex mutexNodeStatus_;
@@ -242,6 +244,10 @@ class YoloObjectDetector
   IplImageWithHeader_ getIplImageWithHeader();
 
   bool getImageStatus(void);
+
+  ros::Time getImageHeaderStamp(void);
+
+  bool isNewImageAvailable(void);
 
   bool isNodeRunning(void);
 
