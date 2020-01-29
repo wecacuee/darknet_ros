@@ -590,7 +590,7 @@ bool YoloObjectDetector::getImageStatus(void)
 }
 
 
-bool isNewImageAvailable(void)
+bool YoloObjectDetector::isNewImageAvailable(void)
 {
   boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
   return newImageAvailable_;
