@@ -209,6 +209,7 @@ class YoloObjectDetector
   bool imageStatus_ = false;
   boost::shared_mutex mutexImageStatus_;
 
+  bool publishEmptyBBoxes_;
 
   bool isNodeRunning_ = true;
   boost::shared_mutex mutexNodeStatus_;
