@@ -58,6 +58,7 @@ bool YoloObjectDetector::readParameters()
   nodeHandle_.param("image_view/enable_opencv", viewImage_, true);
   nodeHandle_.param("image_view/wait_key_delay", waitKeyDelay_, 3);
   nodeHandle_.param("image_view/enable_console_output", enableConsoleOutput_, false);
+  nodeHandle_.param("publish_empty_bboxes", publishEmptyBBoxes_, true);
 
   // Check if Xserver is running on Linux.
   if (XOpenDisplay(NULL)) {
@@ -612,7 +613,7 @@ void *YoloObjectDetector::publishInThread()
 
   // Publish bounding boxes and detection result.
   int num = roiBoxes_[0].num;
-  if (num > 0 && num <= 100) {
+  if ((publishEmptyBBoxes_ || num > 0) && num <= 100) {
     for (int i = 0; i < num; i++) {
       for (int j = 0; j < numClasses_; j++) {
         if (roiBoxes_[i].Class == j) {
