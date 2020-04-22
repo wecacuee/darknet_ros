@@ -200,6 +200,8 @@ class YoloObjectDetector
   int waitKeyDelay_;
   int fullScreen_;
   char *demoPrefix_;
+  int bbox_thresh_min_, bbox_thresh_max_;
+  double bbox_ratio_thresh_max_;
 
   std_msgs::Header imageHeader_;
   cv::Mat camImageCopy_;
@@ -251,6 +253,8 @@ class YoloObjectDetector
   bool isNewImageAvailable(void);
 
   bool isNodeRunning(void);
+
+  bool isGoodBBox(const darknet_ros_msgs::BoundingBox& bbox);
 
   void *publishInThread();
 };

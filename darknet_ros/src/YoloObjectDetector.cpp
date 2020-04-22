@@ -60,6 +60,10 @@ bool YoloObjectDetector::readParameters()
   nodeHandle_.param("image_view/enable_console_output", enableConsoleOutput_, false);
   nodeHandle_.param("publish_empty_bboxes", publishEmptyBBoxes_, true);
 
+  nodeHandle_.param("bbox_thresh_min", bbox_thresh_min_, 30);
+  nodeHandle_.param("bbox_thresh_max", bbox_thresh_max_, 1000);
+  nodeHandle_.param("bbox_ratio_thresh_max", bbox_ratio_thresh_max_, 0.8);
+
   // Check if Xserver is running on Linux.
   if (XOpenDisplay(NULL)) {
     // Do nothing!
@@ -626,6 +630,17 @@ bool YoloObjectDetector::isNodeRunning(void)
   return isNodeRunning_;
 }
 
+bool YoloObjectDetector::isGoodBBox(const darknet_ros_msgs::BoundingBox& bbox)
+{
+  auto bbox_h = bbox.ymax - bbox.ymin;
+  auto bbox_w = bbox.xmax - bbox.xmin;
+  double ratio = bbox_h / (bbox_w + 0.01);
+  return ((ratio < bbox_ratio_thresh_max_)
+          && (bbox_h > bbox_thresh_min_)
+          && (bbox_w > bbox_thresh_min_)
+          && (bbox_w < bbox_thresh_max_));
+}
+
 void *YoloObjectDetector::publishInThread()
 {
   // Publish image.
@@ -670,7 +685,9 @@ void *YoloObjectDetector::publishInThread()
           boundingBox.ymin = ymin;
           boundingBox.xmax = xmax;
           boundingBox.ymax = ymax;
-          boundingBoxesResults_.bounding_boxes.push_back(boundingBox);
+          if (isGoodBBox(boundingBox)) {
+            boundingBoxesResults_.bounding_boxes.push_back(boundingBox);
+          }
         }
       }
     }
