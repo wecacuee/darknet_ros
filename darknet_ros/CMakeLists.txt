@@ -273,6 +273,22 @@ if (NOT EXISTS "${FILE}")
   execute_process(COMMAND wget http://pjreddie.com/media/files/yolov3.weights -P ${PATH})
 endif()
 
+# Download yolov3-tiny.weights
+set(FILE "${PATH}/yolov3-tiny.weights")
+message(STATUS "Checking and downloading yolov3-tiny.weights if needed ...")
+if (NOT EXISTS "${FILE}")
+  message(STATUS "... file does not exist. Downloading now ...")
+  execute_process(COMMAND wget http://pjreddie.com/media/files/yolov3-tiny.weights -P ${PATH})
+endif()
+
+# Download yolov4.weights
+set(FILE "${PATH}/yolov4.weights")
+message(STATUS "Checking and downloading yolov4.weights if needed ...")
+if (NOT EXISTS "${FILE}")
+  message(STATUS "... file does not exist. Downloading now ...")
+  execute_process(COMMAND wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v3_optimal/yolov4.weights -P ${PATH})
+endif()
+
 #############
 ## Testing ##
 #############
