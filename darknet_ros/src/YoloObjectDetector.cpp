@@ -88,6 +88,11 @@ bool YoloObjectDetector::readParameters()
   nodeHandle_.param("image_view/enable_opencv", viewImage_, true);
   nodeHandle_.param("image_view/wait_key_delay", waitKeyDelay_, 3);
   nodeHandle_.param("image_view/enable_console_output", enableConsoleOutput_, false);
+  nodeHandle_.param("publish_empty_bboxes", publishEmptyBBoxes_, true);
+
+  nodeHandle_.param("bbox_thresh_min", bbox_thresh_min_, 30);
+  nodeHandle_.param("bbox_thresh_max", bbox_thresh_max_, 1000);
+  nodeHandle_.param("bbox_ratio_thresh_max", bbox_ratio_thresh_max_, 0.8);
 
   // Check if Xserver is running on Linux.
   if (XOpenDisplay(NULL)) {
@@ -150,6 +155,7 @@ void YoloObjectDetector::init()
     detectionNames[i] = new char[classLabels_[i].length() + 1];
     strcpy(detectionNames[i], classLabels_[i].c_str());
   }
+  // sprintf("[YoloObjectDetector] setupNetwork(%s, %s).\n", cfg, weights);
 
   // Load network.
   setupNetwork(cfg, weights, data, thresh, detectionNames, numClasses_,
@@ -227,6 +233,7 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr& msg)
       boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
       imageHeader_ = msg->header;
       camImageCopy_ = cam_image->image.clone();
+      newImageAvailable_ = true;
     }
     {
       boost::unique_lock<boost::shared_mutex> lockImageStatus(mutexImageStatus_);
@@ -291,7 +298,8 @@ bool YoloObjectDetector::publishDetectionImage(const cv::Mat& detectionImage)
   if (detectionImagePublisher_.getNumSubscribers() < 1)
     return false;
   cv_bridge::CvImage cvImage;
-  cvImage.header.stamp = ros::Time::now();
+  // cvImage.header.stamp = ros::Time::now();
+  cvImage.header.stamp = getImageHeaderStamp();
   cvImage.header.frame_id = "detection_image";
   cvImage.encoding = sensor_msgs::image_encodings::BGR8;
   cvImage.image = detectionImage;
@@ -443,6 +451,7 @@ void *YoloObjectDetector::fetchInThread()
     ipl_into_image(ROS_img, buff_[buffIndex_]);
     headerBuff_[buffIndex_] = imageAndHeader.header;
     buffId_[buffIndex_] = actionId_;
+    newImageAvailable_ = false;
   }
   rgbgr_image(buff_[buffIndex_]);
   letterbox_image_into(buff_[buffIndex_], net_->w, net_->h, buffLetter_[buffIndex_]);
@@ -561,9 +570,13 @@ void YoloObjectDetector::yolo()
     }
   }
 
+  // printf("[YoloObjectDetector] Exiting\n");
+
   demoTime_ = what_time_is_it_now();
 
   while (!demoDone_) {
+    while ( ! isNewImageAvailable() )
+      ros::Duration(0.01).sleep();
     buffIndex_ = (buffIndex_ + 1) % 3;
     fetch_thread = std::thread(&YoloObjectDetector::fetchInThread, this);
     detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
@@ -591,9 +604,36 @@ void YoloObjectDetector::yolo()
 
 }
 
+template <typename T = cv::Mat>
+IplImage* newIplImage(T& m) {
+    // Works after CV_VERSION_STRING >= 3.4.4
+    // https://github.com/opencv/opencv/commit/ad146e5a6b931ac5d179d4fedc58cef99a3c9e7e
+    CV_Assert( m.dims <= 2);
+    IplImage* self = new IplImage();
+    *self = cvIplImage(m);
+    return self;
+}
+
+template <typename T>
+IplImage* newIplImage(
+    typename std::enable_if<
+    std::is_convertible<T, IplImage>::value,
+    T>::type& m
+    )
+{
+    // Works before CV_VERSION_STRING < 3.4.4
+    // https://github.com/opencv/opencv/commit/ad146e5a6b931ac5d179d4fedc58cef99a3c9e7e
+    return new IplImage(m);
+}
+
+ros::Time YoloObjectDetector::getImageHeaderStamp() {
+    boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
+    return imageHeader_.stamp;
+}
+
 IplImageWithHeader_ YoloObjectDetector::getIplImageWithHeader()
 {
-  IplImage* ROS_img = new IplImage(camImageCopy_);
+  IplImage* ROS_img = newIplImage(camImageCopy_);
   IplImageWithHeader_ header = {.image = ROS_img, .header = imageHeader_};
   return header;
 }
@@ -602,6 +642,23 @@ bool YoloObjectDetector::getImageStatus(void)
 {
   boost::shared_lock<boost::shared_mutex> lock(mutexImageStatus_);
   return imageStatus_;
+}
+
+bool YoloObjectDetector::isNewImageAvailable(void)
+{
+    boost::shared_lock<boost::shared_mutex> lock(mutexImageCallback_);
+    return newImageAvailable_;
+}
+
+bool YoloObjectDetector::isGoodBBox(const darknet_ros_msgs::BoundingBox& bbox)
+{
+    auto bbox_h = bbox.ymax - bbox.ymin;
+    auto bbox_w = bbox.xmax - bbox.xmin;
+    double ratio = bbox_h / (bbox_w + 0.01);
+    return ((ratio < bbox_ratio_thresh_max_)
+            && (bbox_h > bbox_thresh_min_)
+            && (bbox_w > bbox_thresh_min_)
+            && (bbox_w < bbox_thresh_max_));
 }
 
 bool YoloObjectDetector::isNodeRunning(void)
@@ -620,7 +677,7 @@ void *YoloObjectDetector::publishInThread()
 
   // Publish bounding boxes and detection result.
   int num = roiBoxes_[0].num;
-  if (num > 0 && num <= 100) {
+  if ((publishEmptyBBoxes_ || num > 0) && num <= 100) {
     for (int i = 0; i < num; i++) {
       for (int j = 0; j < numClasses_; j++) {
         if (roiBoxes_[i].Class == j) {
@@ -631,7 +688,8 @@ void *YoloObjectDetector::publishInThread()
     }
 
     darknet_ros_msgs::ObjectCount msg;
-    msg.header.stamp = ros::Time::now();
+    // msg.header.stamp = ros::Time::now();
+    msg.header.stamp = headerBuff_[(buffIndex_ + 1) % 3].stamp;
     msg.header.frame_id = "detection";
     msg.count = num;
     objectPublisher_.publish(msg);
@@ -653,17 +711,21 @@ void *YoloObjectDetector::publishInThread()
           boundingBox.ymin = ymin;
           boundingBox.xmax = xmax;
           boundingBox.ymax = ymax;
-          boundingBoxesResults_.bounding_boxes.push_back(boundingBox);
+          if (isGoodBBox(boundingBox)) {
+            boundingBoxesResults_.bounding_boxes.push_back(boundingBox);
+          }
         }
       }
     }
-    boundingBoxesResults_.header.stamp = ros::Time::now();
+    // boundingBoxesResults_.header.stamp = ros::Time::now();
+    boundingBoxesResults_.header.stamp = headerBuff_[(buffIndex_ + 1) % 3].stamp;
     boundingBoxesResults_.header.frame_id = "detection";
     boundingBoxesResults_.image_header = headerBuff_[(buffIndex_ + 1) % 3];
     boundingBoxesPublisher_.publish(boundingBoxesResults_);
   } else {
     darknet_ros_msgs::ObjectCount msg;
-    msg.header.stamp = ros::Time::now();
+    // msg.header.stamp = ros::Time::now();
+    msg.header.stamp = getImageHeaderStamp();
     msg.header.frame_id = "detection";
     msg.count = 0;
     objectPublisher_.publish(msg);

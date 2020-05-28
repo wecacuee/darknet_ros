@@ -200,13 +200,19 @@ class YoloObjectDetector
   int waitKeyDelay_;
   int fullScreen_;
   char *demoPrefix_;
+  int bbox_thresh_min_, bbox_thresh_max_;
+  double bbox_ratio_thresh_max_;
+
 
   std_msgs::Header imageHeader_;
   cv::Mat camImageCopy_;
+  bool newImageAvailable_ = false;
   boost::shared_mutex mutexImageCallback_;
 
   bool imageStatus_ = false;
   boost::shared_mutex mutexImageStatus_;
+
+  bool publishEmptyBBoxes_;
 
   bool isNodeRunning_ = true;
   boost::shared_mutex mutexNodeStatus_;
@@ -243,7 +249,13 @@ class YoloObjectDetector
 
   bool getImageStatus(void);
 
+  ros::Time getImageHeaderStamp(void);
+
+  bool isNewImageAvailable(void);
+
   bool isNodeRunning(void);
+
+  bool isGoodBBox(const darknet_ros_msgs::BoundingBox& bbox);
 
   void *publishInThread();
 };
