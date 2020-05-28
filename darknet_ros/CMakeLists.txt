@@ -4,6 +4,7 @@ project(darknet_ros)
 # Set c++11 cmake flags
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 set(CMAKE_C_FLAGS "-Wall -Wno-unused-result -Wno-unknown-pragmas -Wno-unused-variable -Wfatal-errors -fPIC ${CMAKE_C_FLAGS}")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Define path of darknet folder here.
 find_path(DARKNET_PATH
@@ -213,7 +214,7 @@ set(FILE "${PATH}/yolov2-tiny.weights")
 message(STATUS "Checking and downloading yolov2-tiny.weights if needed ...")
 if (NOT EXISTS "${FILE}")
   message(STATUS "... file does not exist. Downloading now ...")
-  execute_process(COMMAND wget http://pjreddie.com/media/files/yolov2-tiny.weights -P ${PATH})
+  execute_process(COMMAND wget -q https://github.com/leggedrobotics/darknet_ros/releases/download/1.1.4/yolov2-tiny.weights -P ${PATH})
 endif()
 
 # Download yolov3.weights
@@ -221,7 +222,7 @@ set(FILE "${PATH}/yolov3.weights")
 message(STATUS "Checking and downloading yolov3.weights if needed ...")
 if (NOT EXISTS "${FILE}")
   message(STATUS "... file does not exist. Downloading now ...")
-  execute_process(COMMAND wget http://pjreddie.com/media/files/yolov3.weights -P ${PATH})
+  execute_process(COMMAND wget -q https://github.com/leggedrobotics/darknet_ros/releases/download/1.1.4/yolov3.weights -P ${PATH})
 endif()
 
 #############
@@ -235,7 +236,7 @@ if(CATKIN_ENABLE_TESTING)
   message(STATUS "Checking and downloading yolov2.weights if needed ...")
   if (NOT EXISTS "${FILE}")
     message(STATUS "... file does not exist. Downloading now ...")
-    execute_process(COMMAND wget http://pjreddie.com/media/files/yolov2.weights -P ${PATH})
+    execute_process(COMMAND wget -q https://github.com/leggedrobotics/darknet_ros/releases/download/1.1.4/yolov2.weights -P ${PATH})
   endif()
 
   find_package(rostest REQUIRED)
@@ -250,3 +251,17 @@ if(CATKIN_ENABLE_TESTING)
     ${catkin_LIBRARIES}
   )
 endif()
+
+#########################
+###   CLANG TOOLING   ###
+#########################
+find_package(cmake_clang_tools QUIET)
+if (cmake_clang_tools_FOUND)
+  message(STATUS "Run clang tooling")
+  add_clang_tooling(
+    TARGETS ${PROJECT_NAME}
+    SOURCE_DIRS ${CMAKE_CURRENT_LIST_DIR}/src ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/test
+    CT_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/include
+    CF_WERROR
+  )
+endif (cmake_clang_tools_FOUND)
