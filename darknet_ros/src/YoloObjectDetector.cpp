@@ -591,27 +591,30 @@ void YoloObjectDetector::yolo()
 
 }
 
-template <typename T = cv::Mat>
-IplImage* newIplImage(T& m) {
-    // Works after CV_VERSION_STRING >= 3.4.4
-    // https://github.com/opencv/opencv/commit/ad146e5a6b931ac5d179d4fedc58cef99a3c9e7e
+#if CV_VERSION_MAJOR > 3 || \
+    (CV_VERSION_MAJOR == 3 && CV_VERSION_MINOR > 4) || \
+    (CV_VERSION_MAJOR == 3 && CV_VERSION_MINOR == 4 && CV_VERSION_REVISION >= 4)
+// Works after CV_VERSION_STRING >= 3.4.4
+// https://github.com/opencv/opencv/commit/ad146e5a6b931ac5d179d4fedc58cef99a3c9e7e
+
+IplImage* newIplImage(cv::Mat& m) {
     CV_Assert( m.dims <= 2);
     IplImage* self = new IplImage();
     *self = cvIplImage(m);
     return self;
 }
 
-template <typename T>
-IplImage* newIplImage(
-    typename std::enable_if<
-    std::is_convertible<T, IplImage>::value,
-    T>::type& m
-    )
+#else
+// Works before CV_VERSION_STRING < 3.4.4
+// https://github.com/opencv/opencv/commit/ad146e5a6b931ac5d179d4fedc58cef99a3c9e7e
+
+IplImage* newIplImage(cv::Mat& m)
 {
-    // Works before CV_VERSION_STRING < 3.4.4
-    // https://github.com/opencv/opencv/commit/ad146e5a6b931ac5d179d4fedc58cef99a3c9e7e
     return new IplImage(m);
 }
+
+#endif // CV_MAJOR_VERSION
+
 
 IplImageWithHeader_ YoloObjectDetector::getIplImageWithHeader()
 {
