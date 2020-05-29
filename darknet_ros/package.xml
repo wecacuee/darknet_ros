@@ -18,7 +18,7 @@
   <depend>cv_bridge</depend>
   <depend>sensor_msgs</depend>
   <depend>message_generation</depend>
-  <depend>darknet_ros_msgs_v4</depend>
+  <depend>darknet_ros_msgs</depend>
   <depend>actionlib</depend>
 
   <!-- Test dependencies -->
