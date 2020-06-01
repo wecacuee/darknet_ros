@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.12)
-project(darknet_ros_v4)
+project(darknet_ros)
 
 # Set c++11 cmake flags
 set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
@@ -170,6 +170,8 @@ if (CUDA_FOUND)
   cuda_add_executable(${PROJECT_NAME}
     src/yolo_object_detector_node.cpp
   )
+  target_link_libraries(${PROJECT_NAME}
+    ${PROJECT_NAME}_lib)
 
 else()
 
@@ -231,6 +233,8 @@ else()
   add_executable(${PROJECT_NAME}
     src/yolo_object_detector_node.cpp
   )
+  target_link_libraries(${PROJECT_NAME}
+    ${PROJECT_NAME}_lib)
 
 endif()
 
