@@ -2,6 +2,6 @@
 DIR=$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)
 if [ ! -f $DIR/yolov4.weights ];then 
     echo "Downloading Yolov4 weights"
-    wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v3_optimal/yolov4.weights -O $DIR/yolov4.weights
+    $DIR/download_weights.sh yolov4
 fi
 eval "rosrun darknet_ros $@"
