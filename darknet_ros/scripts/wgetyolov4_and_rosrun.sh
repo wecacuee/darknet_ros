@@ -4,4 +4,4 @@ if [ ! -f "$WDIR/yolov4.weights" ];then
     echo "Downloading Yolov4 weights"
     $WDIR/download_weights.sh yolov4
 fi
-eval "rosrun darknet_ros $@"
+rosrun darknet_ros "$@"
