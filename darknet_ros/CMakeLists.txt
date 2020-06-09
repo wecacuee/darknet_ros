@@ -266,25 +266,25 @@ install(
 ## Testing ##
 #############
 
-if(CATKIN_ENABLE_TESTING)
-  # Download yolov2.weights
-  set(PATH "${CMAKE_CURRENT_SOURCE_DIR}/yolo_network_config/weights")
-  set(FILE "${PATH}/yolov2.weights")
-  message(STATUS "Checking and downloading yolov2.weights if needed ...")
-  if (NOT EXISTS "${FILE}")
-    message(STATUS "... file does not exist. Downloading now ...")
-    execute_process(COMMAND wget http://pjreddie.com/media/files/yolov2.weights -P ${PATH})
-  endif()
-
-  find_package(rostest REQUIRED)
-
-  # Object detection in images.
-  add_rostest_gtest(${PROJECT_NAME}_object_detection-test
-    test/object_detection.test
-    test/test_main.cpp
-    test/ObjectDetection.cpp
-  )
-  target_link_libraries(${PROJECT_NAME}_object_detection-test
-    ${catkin_LIBRARIES}
-  )
-endif()
+# if(CATKIN_ENABLE_TESTING)
+#   # Download yolov2.weights
+#   set(PATH "${CMAKE_CURRENT_SOURCE_DIR}/yolo_network_config/weights")
+#   set(FILE "${PATH}/yolov2.weights")
+#   message(STATUS "Checking and downloading yolov2.weights if needed ...")
+#   if (NOT EXISTS "${FILE}")
+#     message(STATUS "... file does not exist. Downloading now ...")
+#     execute_process(COMMAND wget http://pjreddie.com/media/files/yolov2.weights -P ${PATH})
+#   endif()
+# 
+#   find_package(rostest REQUIRED)
+# 
+#   # Object detection in images.
+#   add_rostest_gtest(${PROJECT_NAME}_object_detection-test
+#     test/object_detection.test
+#     test/test_main.cpp
+#     test/ObjectDetection.cpp
+#   )
+#   target_link_libraries(${PROJECT_NAME}_object_detection-test
+#     ${catkin_LIBRARIES}
+#   )
+# endif()
