@@ -15,7 +15,7 @@ add_definitions(-DDARKNET_FILE_PATH="${DARKNET_PATH}")
 find_package(BLAS REQUIRED)
 
 # Find CUDA
-find_package(CUDA QUIET)
+find_package(CUDA QUIET COMPONENTS cublas curand)
 if (CUDA_FOUND)
   find_package(CUDA REQUIRED)
   message(STATUS "CUDA Version: ${CUDA_VERSION_STRINGS}")
@@ -152,15 +152,14 @@ if (CUDA_FOUND)
     ${DARKNET_PATH}/src/network_kernels.cu
 
   )
-
   target_link_libraries(${PROJECT_NAME}_lib
     m
     pthread
     stdc++
-    cuda
-    cudart
-    cublas
-    curand
+    ${CUDA_LIBRARIES}
+    ${CUDA_CUDA_LIBRARY}
+    ${CUDA_cublas_LIBRARY}
+    ${CUDA_curand_LIBRARY}
     ${Boost_LIBRARIES}
     ${OpenCV_LIBRARIES}
     ${catkin_LIBRARIES}
